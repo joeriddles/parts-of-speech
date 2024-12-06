@@ -6,14 +6,16 @@ TODO(joeriddles): Investigate using:
 - [NTLK](https://www.nltk.org/)
 - [Stanford Log-linear Part-Of-Speech Tagger](https://nlp.stanford.edu/software/tagger.shtml)
 """
-import collections
 import enum
-import re
 import sys
 
 import nltk
+import spacy
+import spacy.tokens
 
 debug = False
+
+nlp: spacy.language.Language
 
 class Colors(enum.StrEnum):
     RESET 	= "0"
@@ -114,6 +116,40 @@ def main(input: str):
         print("\n")
 
 
+    # Spacy
+    print("=== main clauses ===")
+    for line in lines:
+        doc = nlp(line)
+        for token in doc:
+            if token.dep_ == "ROOT": # main clause
+                def print_token(t: spacy.tokens.Token, depth: int = 0) -> None:
+                    print(depth*"  ", t)
+                    for st in t.children:
+                        print_token(st, depth+1)
+
+                print_token(token)
+                print()
+
+                main_clause_tokens = [t for t in token.subtree if t.head == token or t == token]
+                
+                subjects = [child for child in token.children if child.dep_ == "nsubj"]
+                if subjects:
+                    subject_i = main_clause_tokens.index(subjects[0])
+                    if subject_i > -1:
+                        main_clause_tokens = main_clause_tokens[subject_i:]
+                
+                punctuations = [t for t in main_clause_tokens if t.dep_ == 'punct']
+                if punctuations:
+                    punctuation_i = main_clause_tokens.index(punctuations[0])
+                    main_clause_tokens = main_clause_tokens[:punctuation_i]
+                
+                main_clause = " ".join((t.text for t in main_clause_tokens))
+                print("=== main clause ===")
+                print(main_clause)
+                print("===================")
+                print()
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         stderr("input filepath is required")
@@ -124,8 +160,12 @@ if __name__ == "__main__":
     with open(filepath) as fin:
         input = fin.read()
 
+    # Load models, nltk automatically loads, spacy must be loaded ahead of time
     nltk.download('punkt_tab', quiet=not debug)
     nltk.download('averaged_perceptron_tagger_eng', quiet=not debug)
+    
+    lg_model = "--lg" in sys.argv
+    nlp = spacy.load("en_core_web_lg" if lg_model else "en_core_web_sm")
 
     debug = "--debug" in sys.argv
     main(input)
