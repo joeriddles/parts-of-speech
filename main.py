@@ -95,23 +95,6 @@ def get_pos_from_penn_treebank_tag(pt_tag: str) -> PartOfSpeech | None:
 
 
 def main(input: str):
-    # Read in dictionary files
-    parts_of_speech: dict[PartOfSpeech, list[str]] = collections.defaultdict(list)
-    dictionary: dict[str, PartOfSpeech] = {}
-    for pos in PartOfSpeech:
-        with open(f"./data/{pos}.txt") as fin:
-            for word in fin.readlines():
-                word = word.strip().casefold()
-                parts_of_speech[pos].append(word)
-                
-                if debug and word in dictionary:
-                    # this word is defined as a two different parts of speech
-                    stderr(f"{word} is defined as multiple parts of speech: {dictionary[word]}, {pos}")
-
-                dictionary[word] = pos
-        if debug:
-            print(f"{pos}: {len(parts_of_speech[pos])}")
-
     # Print color key
     print("=== color key ===")
     for pos, color in COLORS_BY_PART_OF_SPEECH.items():
@@ -127,9 +110,6 @@ def main(input: str):
         for pos_tag in pos_tags:
             word, pt_pos = pos_tag
             pos = get_pos_from_penn_treebank_tag(pt_pos)
-            if pos is None:
-                # Fallback to manual dictionary
-                pos = dictionary.get(word.casefold())
             print_word(word, pos, end=" ")
         print("\n")
 
