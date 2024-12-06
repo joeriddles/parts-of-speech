@@ -1,10 +1,6 @@
 """Python script to indentify parts of speech of words in a file.
 
 Words are printed out color-coded by part of speech.
-
-TODO(joeriddles): Investigate using:
-- [NTLK](https://www.nltk.org/)
-- [Stanford Log-linear Part-Of-Speech Tagger](https://nlp.stanford.edu/software/tagger.shtml)
 """
 import enum
 import sys
@@ -96,7 +92,7 @@ def get_pos_from_penn_treebank_tag(pt_tag: str) -> PartOfSpeech | None:
             return None
 
 
-def main(input: str):
+def main(src: str):
     # Print color key
     print("=== color key ===")
     for pos, color in COLORS_BY_PART_OF_SPEECH.items():
@@ -104,8 +100,11 @@ def main(input: str):
     print("=================")
     print()
     
+    lines = src.split("\n")
+    # ignore comments in text file
+    lines = [line for line in lines if not line.startswith("#")]
+
     # NLTK
-    lines = input.split("\n")
     for line in lines:
         words = nltk.word_tokenize(line)
         pos_tags: list[tuple[str, str]] = nltk.pos_tag(words)
@@ -115,6 +114,10 @@ def main(input: str):
             print_word(word, pos, end=" ")
         print("\n")
 
+    # Wait to continue
+    while True:
+        if input("press c to continue: ") == "c":
+            break
 
     # Spacy
     print("=== main clauses ===")
@@ -127,8 +130,9 @@ def main(input: str):
                     for st in t.children:
                         print_token(st, depth+1)
 
-                print_token(token)
-                print()
+                if debug:
+                    print_token(token)
+                    print()
 
                 main_clause_tokens = [t for t in token.subtree if t.head == token or t == token]
                 
@@ -155,10 +159,10 @@ if __name__ == "__main__":
         stderr("input filepath is required")
         exit(1)
     
-    input: str
+    src: str
     filepath = sys.argv[1]
     with open(filepath) as fin:
-        input = fin.read()
+        src = fin.read()
 
     # Load models, nltk automatically loads, spacy must be loaded ahead of time
     nltk.download('punkt_tab', quiet=not debug)
@@ -168,4 +172,4 @@ if __name__ == "__main__":
     nlp = spacy.load("en_core_web_lg" if lg_model else "en_core_web_sm")
 
     debug = "--debug" in sys.argv
-    main(input)
+    main(src)
